@@ -1,0 +1,20 @@
+version: '3.7'
+services:
+  master:
+    image: locustio/locust
+    ports:
+      - "8089:8089"  # Locust 웹 UI 포트
+    volumes:
+      - ./:/mnt/locust  # 현재 디렉토리를 컨테이너 내부의 /mnt/locust에 마운트
+    command: -f /mnt/locust/locustfile-issue.py --master -H http://host.docker.internal:8080
+    # host.docker.internal을 사용해서 호스트 머신의 8080 포트에 접근
+
+  worker:
+    image: locustio/locust
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile-issue.py --worker --master-host master
+    depends_on:
+      - master
+    deploy:
+      replicas: 4  # 워커 수를 4개로 설정 (필요에 따라 조정 가능)

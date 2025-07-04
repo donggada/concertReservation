@@ -1,0 +1,86 @@
+version: '3.7'
+services:
+  # 기존 Redis 설정
+  redis:
+    container_name: concertReservation-redis
+    image: redis:7.2-alpine
+    command: redis-server --port 6380
+    labels:
+      - "name=redis"
+      - "mode=standalone"
+    ports:
+      - 6380:6380
+    networks:
+      - concert-network
+
+  # 기존 MariaDB 설정
+  mariadb:
+    container_name: concertReservation-mariadb
+    image: mariadb:10.5
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --explicit_defaults_for_timestamp=1
+    ports:
+      - 33306:3306
+    environment:
+      - MYSQL_DATABASE=concertReservation
+      - MYSQL_USER=concertReservation
+      - MYSQL_PASSWORD=1234
+      - MYSQL_ROOT_PASSWORD=1234
+      - TZ=UTC
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - concert-network
+
+  # 스프링부트 애플리케이션 추가
+  spring-app:
+    container_name: concertReservation-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/concertReservation
+      - SPRING_DATASOURCE_USERNAME=concertReservation
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6380
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - concert-network
+
+  # 모니터링 도구 추가 (선택사항)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: concertReservation-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - concert-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: concertReservation-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - concert-network
+
+networks:
+  concert-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:
