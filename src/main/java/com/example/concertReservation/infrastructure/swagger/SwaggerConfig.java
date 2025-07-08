@@ -13,9 +13,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(
-                title = "badminton-API",
+                title = "concertReservation-API",
                 version = "v1.0.0",
-                description = "배드민턴 API 문서"
+                description = "콘서트 예약 API 문서"
         ),
         security = { @SecurityRequirement(name = "bearerAuth") }
 )
